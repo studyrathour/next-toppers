@@ -1,0 +1,79 @@
+{
+  "name": "Physics for Beginners",
+  "description": "An introductory course covering the fundamental principles of classical mechanics and thermodynamics.",
+  "thumbnail": "https://images.pexels.com/photos/256490/pexels-photo-256490.jpeg?auto=compress&cs=tinysrgb&w=800",
+  "subjects": [
+    {
+      "name": "Classical Mechanics",
+      "thumbnail": "https://images.pexels.com/photos/5427656/pexels-photo-5427656.jpeg?auto=compress&cs=tinysrgb&w=400",
+      "sections": [
+        {
+          "name": "01-Kinematics",
+          "type": "video",
+          "contents": [
+            {
+              "title": "Introduction to Motion",
+              "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              "thumbnail": "https://images.pexels.com/photos/4050291/pexels-photo-4050291.jpeg?auto=compress&cs=tinysrgb&w=400"
+            },
+            {
+              "title": "Velocity and Acceleration",
+              "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              "thumbnail": "https://images.pexels.com/photos/4050318/pexels-photo-4050318.jpeg?auto=compress&cs=tinysrgb&w=400"
+            }
+          ]
+        },
+        {
+          "name": "01-Kinematics-Notes",
+          "type": "notes",
+          "contents": [
+            {
+              "title": "Chapter 1 Notes",
+              "url": "https://example.com/notes.pdf",
+              "thumbnail": "https://images.pexels.com/photos/4145153/pexels-photo-4145153.jpeg?auto=compress&cs=tinysrgb&w=400"
+            }
+          ]
+        },
+        {
+          "name": "02-Forces",
+          "type": "video",
+          "contents": [
+            {
+              "title": "Newton's Laws of Motion",
+              "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              "thumbnail": "https://images.pexels.com/photos/4050303/pexels-photo-4050303.jpeg?auto=compress&cs=tinysrgb&w=400"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Thermodynamics",
+      "thumbnail": "https://images.pexels.com/photos/1524620/pexels-photo-1524620.jpeg?auto=compress&cs=tinysrgb&w=400",
+      "sections": [
+        {
+          "name": "01-Temperature-and-Heat",
+          "type": "video",
+          "contents": [
+            {
+              "title": "Understanding Temperature",
+              "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+              "thumbnail": "https://images.pexels.com/photos/4050315/pexels-photo-4050315.jpeg?auto=compress&cs=tinysrgb&w=400"
+            }
+          ]
+        },
+        {
+          "name": "01-Assignments",
+          "type": "assignment",
+          "contents": [
+            {
+              "title": "Problem Set 1",
+              "url": "https://example.com/assignment.pdf",
+              "thumbnail": "https://images.pexels.com/photos/590022/pexels-photo-590022.jpeg?auto=compress&cs=tinysrgb&w=400"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
