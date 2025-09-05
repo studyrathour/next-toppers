@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Book, Users, Edit, Trash2, AlertTriangle, FileJson, Plus } from 'lucide-react';
 import { Batch } from '../types';
 import { firebaseService } from '../services/firebase';
-import SkeletonLoader from './SkeletonLoader';
 import toast from 'react-hot-toast';
 
 interface BatchListProps {
@@ -77,18 +76,6 @@ const BatchList: React.FC<BatchListProps> = ({ onEdit, onNew }) => {
     toast.success(`Exported ${batch.name}.json`);
   };
 
-  if (isLoading) {
-    return (
-      <div className="bg-surface rounded-xl shadow-lg p-8 border border-secondary">
-        <div className="flex items-center justify-between mb-8">
-          <div className="h-8 bg-secondary rounded w-48 animate-pulse"></div>
-          <div className="h-10 bg-secondary rounded w-40 animate-pulse"></div>
-        </div>
-        <SkeletonLoader type="card" count={6} />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="bg-danger/10 border border-danger/30 text-danger px-6 py-4 rounded-lg" role="alert">
@@ -119,7 +106,7 @@ const BatchList: React.FC<BatchListProps> = ({ onEdit, onNew }) => {
         </button>
       </div>
 
-      {batches.length === 0 ? (
+      {batches.length === 0 && !isLoading ? (
         <div className="text-center py-16 text-text-secondary">
           <Book className="w-20 h-20 mx-auto mb-6 opacity-50" />
           <h3 className="text-xl font-semibold mb-2">No Batches Available</h3>

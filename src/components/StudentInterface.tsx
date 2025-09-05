@@ -7,7 +7,6 @@ import StandardGrid from './batch-layouts/StandardGrid';
 import HorizontalList from './batch-layouts/HorizontalList';
 import OverlayGrid from './batch-layouts/OverlayGrid';
 import AlternatingList from './batch-layouts/AlternatingList';
-import SkeletonLoader from './SkeletonLoader';
 
 const StudentInterface: React.FC = () => {
   const [allBatches, setAllBatches] = useState<Batch[]>([]);
@@ -41,21 +40,6 @@ const StudentInterface: React.FC = () => {
   }, []);
 
   const renderMainContent = () => {
-    if (isLoading) {
-      return (
-        <div className="space-y-16">
-          <div>
-            <div className="h-8 bg-surface rounded w-48 mb-6 animate-pulse"></div>
-            <SkeletonLoader type="card" count={8} />
-          </div>
-          <div>
-            <div className="h-8 bg-surface rounded w-56 mb-6 animate-pulse"></div>
-            <SkeletonLoader type="list" count={3} />
-          </div>
-        </div>
-      );
-    }
-
     if (error) {
       return (
         <div className="bg-danger/10 border border-danger/30 text-text-primary px-6 py-4 rounded-lg" role="alert">
@@ -88,7 +72,7 @@ const StudentInterface: React.FC = () => {
     
     return (
       <div>
-        {allBatches.length === 0 ? (
+        {allBatches.length === 0 && !isLoading ? (
           <div className="text-center py-12 bg-surface rounded-lg shadow-lg border border-secondary">
             <Book className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-text-secondary">No Courses Available</h3>

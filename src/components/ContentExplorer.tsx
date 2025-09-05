@@ -4,7 +4,6 @@ import { ArrowLeft } from 'lucide-react';
 import { Batch, Subject } from '../types';
 import SubjectView from './SubjectView';
 import ContentThumbnail from './ContentThumbnail';
-import SkeletonLoader from './SkeletonLoader';
 
 type PathItem =
   | { type: 'root'; title: string; data: Subject[] }
@@ -37,17 +36,12 @@ const ContentExplorer: React.FC<ContentExplorerProps> = ({ batch, onBackToCourse
     { type: 'root', title: batch.name, data: batch.subjects || [] },
   ]);
   const [direction, setDirection] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
 
   const currentLevel = path[path.length - 1];
 
   const drillDown = (newItem: PathItem) => {
-    setIsLoading(true);
     setDirection(1);
-    setTimeout(() => {
-      setPath([...path, newItem]);
-      setIsLoading(false);
-    }, 150);
+    setPath([...path, newItem]);
   };
 
   const goBack = () => {
@@ -55,12 +49,8 @@ const ContentExplorer: React.FC<ContentExplorerProps> = ({ batch, onBackToCourse
       onBackToCourses();
       return;
     }
-    setIsLoading(true);
     setDirection(-1);
-    setTimeout(() => {
-      setPath(path.slice(0, -1));
-      setIsLoading(false);
-    }, 150);
+    setPath(path.slice(0, -1));
   };
 
   const renderBreadcrumb = () => {
@@ -96,14 +86,6 @@ const ContentExplorer: React.FC<ContentExplorerProps> = ({ batch, onBackToCourse
   };
 
   const renderContent = () => {
-    if (isLoading) {
-      return currentLevel.type === 'root' ? (
-        <SkeletonLoader type="subject" count={6} />
-      ) : (
-        <SkeletonLoader type="content" count={8} />
-      );
-    }
-
     switch (currentLevel.type) {
       case 'root':
         return (

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { produce } from 'immer';
 import { Save, X, Plus, Trash2, ArrowLeft, ImagePlus, Upload, Check, Image } from 'lucide-react';
 import { Batch, Subject, Section, Content } from '../types';
 import { firebaseService } from '../services/firebase';
 import { ThumbnailSelector } from './ThumbnailSelector';
+import { processSubjectFolder } from '../utils/xlsxParser';
 import toast from 'react-hot-toast';
 
 interface BatchEditorProps {
@@ -46,6 +47,10 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
     currentUrl: string;
   } | null>(null);
 
+  const [updatingSubjectIndex, setUpdatingSubjectIndex] = useState<number | null>(null);
+  const [subjectToUpdate, setSubjectToUpdate] = useState<number | null>(null);
+  const subjectFolderInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (batchToEdit) {
       setBatchData(batchToEdit);
@@ -68,7 +73,6 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
       }
       current[path[path.length - 1]] = value;
       
-      // Auto-update content thumbnails when subject thumbnail changes
       if (path.length === 3 && path[0] === 'subjects' && path[2] === 'thumbnail') {
         const subjectIndex = path[1] as number;
         draft.subjects[subjectIndex].sections.forEach(section => {
@@ -207,7 +211,6 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
     } else if (path) {
       handleNestedChange(path, url);
       
-      // If updating subject thumbnail, automatically update all content thumbnails in that subject
       if (type === 'subject' && path.length === 3 && path[0] === 'subjects') {
         const subjectIndex = path[1] as number;
         setBatchData(produce(draft => {
@@ -241,6 +244,54 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
       console.error(error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSubjectFolderUpdate = async (event: React.ChangeEvent<HTMLInputElement>, subjectIndex: number) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUpdatingSubjectIndex(subjectIndex);
+    const toastId = toast.loading('Processing folder...');
+
+    try {
+        const newSectionsData = await processSubjectFolder(files);
+        const subjectThumbnail = batchData.subjects[subjectIndex].thumbnail; // Preserve this
+
+        setBatchData(produce(draft => {
+            const subject = draft.subjects[subjectIndex];
+            
+            newSectionsData.forEach(newSectionData => {
+                const newContentsWithDetails: Content[] = (newSectionData.contents as any[]).map(content => ({
+                    ...content,
+                    id: Math.random().toString(36).substr(2, 9),
+                    thumbnail: subjectThumbnail,
+                }));
+
+                const existingSectionIndex = subject.sections.findIndex(s => s.name === newSectionData.name);
+
+                if (existingSectionIndex > -1) {
+                    subject.sections[existingSectionIndex].contents = newContentsWithDetails;
+                    subject.sections[existingSectionIndex].type = newSectionData.type;
+                } else {
+                    subject.sections.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        name: newSectionData.name,
+                        type: newSectionData.type,
+                        contents: newContentsWithDetails,
+                    });
+                }
+            });
+        }));
+        
+        toast.success(`Subject "${batchData.subjects[subjectIndex].name}" updated successfully!`, { id: toastId });
+
+    } catch (error) {
+        toast.error('Failed to update subject from folder.', { id: toastId });
+        console.error(error);
+    } finally {
+        setUpdatingSubjectIndex(null);
+        if (event.target) event.target.value = '';
     }
   };
 
@@ -317,6 +368,20 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
 
   return (
     <div className="min-h-screen bg-background">
+      <input
+        type="file"
+        // @ts-ignore
+        webkitdirectory=""
+        multiple
+        ref={subjectFolderInputRef}
+        onChange={(e) => {
+          if (subjectToUpdate !== null) {
+            handleSubjectFolderUpdate(e, subjectToUpdate);
+            setSubjectToUpdate(null);
+          }
+        }}
+        className="hidden"
+      />
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-between mb-8">
           <button onClick={onClose} className="flex items-center gap-2 text-primary font-medium hover:brightness-125 transition">
@@ -331,18 +396,13 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
             disabled={isLoading}
             className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/80 disabled:opacity-50 flex items-center gap-2 font-medium transition-all"
           >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <Save className="w-5 h-5" />
-            )}
+            <Save className="w-5 h-5" />
             {isLoading ? 'Saving...' : 'Save Batch'}
           </button>
         </div>
 
         {renderBreadcrumb()}
 
-        {/* Bulk Thumbnail Modal */}
         {showBulkThumbnail && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-surface rounded-xl p-6 max-w-md w-full mx-4 border border-secondary">
@@ -391,7 +451,6 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
           </div>
         )}
 
-        {/* Thumbnail Selector Modal */}
         {showThumbnailSelector && thumbnailSelectorContext && (
           <ThumbnailSelector
             currentThumbnail={thumbnailSelectorContext.currentUrl}
@@ -544,7 +603,18 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
                           className="flex-1 bg-indigo-500 text-white py-2 px-3 rounded hover:bg-indigo-600 text-sm flex items-center justify-center gap-1"
                         >
                           <Image className="w-3 h-3" />
-                          Browse & Update All
+                          Browse & Update
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSubjectToUpdate(sIdx);
+                            subjectFolderInputRef.current?.click();
+                          }}
+                          disabled={updatingSubjectIndex === sIdx}
+                          className="flex-1 bg-green-600 text-white py-2 px-3 rounded hover:bg-green-700 text-sm flex items-center justify-center gap-1 disabled:opacity-50"
+                        >
+                          <Upload className="w-3 h-3" />
+                          Update Folder
                         </button>
                       </div>
                       <div className="flex gap-2">

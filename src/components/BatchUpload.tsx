@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { Upload, FolderOpen, FileSpreadsheet, Eye, Plus } from 'lucide-react';
 import { processFolderStructure } from '../utils/xlsxParser';
 import { firebaseService } from '../services/firebase';
-import SkeletonLoader from './SkeletonLoader';
 import toast from 'react-hot-toast';
 
 const BatchUpload: React.FC = () => {
@@ -107,16 +106,11 @@ const BatchUpload: React.FC = () => {
             <label htmlFor="folderUpload" className={`cursor-pointer ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>
               <FolderOpen className="w-16 h-16 text-text-tertiary mx-auto mb-6" />
               <p className="text-xl font-medium text-text-secondary mb-3">
-                {isProcessing ? 'Processing Folder...' : 'Select Batch Folder'}
+                {isProcessing ? 'Processing...' : 'Select Batch Folder'}
               </p>
               <p className="text-text-tertiary">
                 Choose a folder containing subjects with XLSX files
               </p>
-              {isProcessing && (
-                <div className="mt-4">
-                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-                </div>
-              )}
             </label>
           </div>
         </div>
@@ -134,58 +128,45 @@ const BatchUpload: React.FC = () => {
                 disabled={isUploading}
                 className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/80 disabled:opacity-50 flex items-center gap-2 font-medium transition-all hover:shadow-lg hover:shadow-primary/25"
               >
-                {isUploading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-5 h-5" />
-                    Upload to Firebase
-                  </>
-                )}
+                <Plus className="w-5 h-5" />
+                {isUploading ? 'Uploading...' : 'Upload to Firebase'}
               </button>
             </div>
 
-            {isUploading ? (
-              <SkeletonLoader type="card" count={3} />
-            ) : (
-              <div className="space-y-6">
-                {Object.keys(previewData).map((batchName) => (
-                  <div key={batchName} className="bg-surface rounded-lg p-6 border border-secondary">
-                    <h4 className="font-semibold text-xl text-text-primary mb-4 flex items-center gap-2">
-                      📚 Batch: {batchName}
-                    </h4>
-                    <div className="space-y-4">
-                      {Object.keys(previewData[batchName].subjects).map((subjectName) => (
-                        <div key={subjectName} className="bg-background rounded-lg p-4 border border-secondary">
-                          <h5 className="font-medium text-lg text-text-secondary mb-3 flex items-center gap-2">
-                            📖 Subject: {subjectName}
-                          </h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {Object.keys(previewData[batchName].subjects[subjectName].sections).map((sectionName) => {
-                              const section = previewData[batchName].subjects[subjectName].sections[sectionName];
-                              return (
-                                <div key={sectionName} className="bg-surface rounded-lg p-3 border border-secondary hover:border-primary/50 transition-colors">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <FileSpreadsheet className="w-5 h-5 text-green-400" />
-                                    <span className="font-medium text-text-primary">{sectionName}</span>
-                                  </div>
-                                  <p className="text-sm text-text-tertiary">
-                                    {section.contents?.length || 0} items • {section.type}
-                                  </p>
+            <div className="space-y-6">
+              {Object.keys(previewData).map((batchName) => (
+                <div key={batchName} className="bg-surface rounded-lg p-6 border border-secondary">
+                  <h4 className="font-semibold text-xl text-text-primary mb-4 flex items-center gap-2">
+                    📚 Batch: {batchName}
+                  </h4>
+                  <div className="space-y-4">
+                    {Object.keys(previewData[batchName].subjects).map((subjectName) => (
+                      <div key={subjectName} className="bg-background rounded-lg p-4 border border-secondary">
+                        <h5 className="font-medium text-lg text-text-secondary mb-3 flex items-center gap-2">
+                          📖 Subject: {subjectName}
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {Object.keys(previewData[batchName].subjects[subjectName].sections).map((sectionName) => {
+                            const section = previewData[batchName].subjects[subjectName].sections[sectionName];
+                            return (
+                              <div key={sectionName} className="bg-surface rounded-lg p-3 border border-secondary hover:border-primary/50 transition-colors">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <FileSpreadsheet className="w-5 h-5 text-green-400" />
+                                  <span className="font-medium text-text-primary">{sectionName}</span>
                                 </div>
-                              );
-                            })}
-                          </div>
+                                <p className="text-sm text-text-tertiary">
+                                  {section.contents?.length || 0} items • {section.type}
+                                </p>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

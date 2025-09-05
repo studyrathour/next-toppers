@@ -1,9 +1,36 @@
 import * as XLSX from 'xlsx';
+import { Section } from '../types';
 
 export interface XLSXContent {
   url: string;
   title: string;
 }
+
+export interface ParsedSectionData {
+    name: string;
+    type: Section['type'];
+    contents: XLSXContent[];
+}
+
+// Helper to determine section type from its name
+const getSectionTypeFromName = (name: string): Section['type'] => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('video')) return 'video';
+    if (lowerName.includes('notes')) return 'notes';
+    if (lowerName.includes('quiz')) return 'quiz';
+    if (
+        lowerName.includes('dpp') ||
+        lowerName.includes('acp') ||
+        lowerName.includes('wpp') ||
+        lowerName.includes('otp') ||
+        lowerName.includes('assignment')
+    ) {
+        return 'assignment';
+    }
+    // Default to video if no specific keyword is found
+    return 'video';
+};
+
 
 export const parseXLSXFile = async (file: File): Promise<XLSXContent[]> => {
   return new Promise((resolve, reject) => {
@@ -50,6 +77,33 @@ export const parseXLSXFile = async (file: File): Promise<XLSXContent[]> => {
   });
 };
 
+/**
+ * Processes a flat list of files from a folder picker, assuming they all belong to one subject.
+ * It finds all .xlsx files, parses them, and returns an array of section data.
+ */
+export const processSubjectFolder = async (files: FileList): Promise<ParsedSectionData[]> => {
+    const sections: ParsedSectionData[] = [];
+    const xlsxFiles = Array.from(files).filter(
+        (file) => file.name.endsWith('.xlsx') && !file.name.startsWith('~')
+    );
+
+    for (const file of xlsxFiles) {
+        try {
+            const contents = await parseXLSXFile(file);
+            const sectionName = file.name.replace('.xlsx', '');
+            
+            sections.push({
+                name: sectionName,
+                type: getSectionTypeFromName(sectionName),
+                contents,
+            });
+        } catch (error) {
+            console.error(`Failed to parse ${file.name}:`, error);
+        }
+    }
+    return sections;
+};
+
 export const processFolderStructure = async (files: FileList): Promise<any> => {
   const batches: any = {};
   
@@ -80,10 +134,7 @@ export const processFolderStructure = async (files: FileList): Promise<any> => {
         const contents = await parseXLSXFile(file);
         batches[batchName].subjects[subjectName].sections[fileName] = {
           name: fileName,
-          type: fileName.toLowerCase().includes('video') ? 'video' : 
-                fileName.toLowerCase().includes('notes') ? 'notes' :
-                fileName.toLowerCase().includes('dpp') || fileName.toLowerCase().includes('acp') || 
-                fileName.toLowerCase().includes('wpp') || fileName.toLowerCase().includes('otp') ? 'assignment' : 'notes',
+          type: getSectionTypeFromName(fileName),
           contents
         };
       } catch (error) {

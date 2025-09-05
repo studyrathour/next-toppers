@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Video, FileText, ClipboardCheck, HelpCircle, Play, Book } from 'lucide-react';
+import { Video, FileText, ClipboardCheck, HelpCircle } from 'lucide-react';
 import { Subject, Content } from '../types';
 import { getVideoPlayerURL } from '../utils/videoPlayer';
 import ContentThumbnail from './ContentThumbnail';
-import SkeletonLoader from './SkeletonLoader';
 
 type ContentType = 'video' | 'notes' | 'assignment' | 'quiz';
 
@@ -16,7 +15,6 @@ const iconMap: { [key in ContentType]: React.ElementType } = {
 
 const SubjectView: React.FC<{ subject: Subject }> = ({ subject }) => {
   const [activeTab, setActiveTab] = useState<ContentType>('video');
-  const [isLoading, setIsLoading] = useState(false);
 
   const contentByType = useMemo(() => {
     const grouped: Record<ContentType, Content[]> = {
@@ -49,11 +47,7 @@ const SubjectView: React.FC<{ subject: Subject }> = ({ subject }) => {
 
   const handleTabChange = (tab: ContentType) => {
     if (tab === activeTab) return;
-    setIsLoading(true);
-    setTimeout(() => {
-      setActiveTab(tab);
-      setIsLoading(false);
-    }, 150);
+    setActiveTab(tab);
   };
 
   return (
@@ -85,9 +79,7 @@ const SubjectView: React.FC<{ subject: Subject }> = ({ subject }) => {
       </div>
 
       <div className="flex-grow overflow-y-auto">
-        {isLoading ? (
-          <SkeletonLoader type="content" count={8} />
-        ) : activeContent.length > 0 ? (
+        {activeContent.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {activeContent.map(content => (
               <a 

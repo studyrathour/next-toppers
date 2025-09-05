@@ -10,7 +10,7 @@ interface ContentThumbnailProps {
   isSubject?: boolean;
 }
 
-const defaultThumbnail = 'https://img-wrapper.vercel.app/image?url=https://placehold.co/1280x720/19223c/f0f4f8?text=Missing+Thumbnail';
+const defaultThumbnail = 'https://img-wrapper.vercel.app/image?url=https://img-wrapper.vercel.app/image?url=https://placehold.co/1280x720/19223c/f0f4f8?text=Missing+Thumbnail';
 
 const getIcon = (type?: string) => {
   switch (type) {

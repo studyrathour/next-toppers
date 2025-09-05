@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Image, Trash2, Copy, ExternalLink, Search, Filter } from 'lucide-react';
+import { Upload, Image, Trash2, Copy, ExternalLink, Search } from 'lucide-react';
 import { imageUploadService } from '../services/imageUpload';
 import type { UploadedImage } from '../services/imageUpload';
 import toast from 'react-hot-toast';
@@ -17,6 +17,7 @@ const ThumbnailManager: React.FC = () => {
   }, []);
 
   const loadImages = async () => {
+    setIsLoading(true);
     try {
       const uploadedImages = await imageUploadService.getUploadedImages();
       setImages(uploadedImages);
@@ -164,21 +165,6 @@ const ThumbnailManager: React.FC = () => {
       }
     });
 
-  if (isLoading) {
-    return (
-      <div className="bg-surface rounded-xl shadow-lg p-8 border border-secondary">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-secondary rounded w-1/3"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-48 bg-secondary rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-surface rounded-xl shadow-lg p-8 border border-secondary">
       <div className="flex items-center justify-between mb-8">
@@ -196,7 +182,7 @@ const ThumbnailManager: React.FC = () => {
               Delete Selected ({selectedImages.size})
             </button>
           )}
-          <label className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/80 cursor-pointer flex items-center gap-2 font-medium transition-all">
+          <label className={`bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/80 flex items-center gap-2 font-medium transition-all ${isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
             <Upload className="w-5 h-5" />
             {isUploading ? 'Uploading...' : 'Upload Images'}
             <input
@@ -261,7 +247,7 @@ const ThumbnailManager: React.FC = () => {
       </div>
 
       {/* Image Grid */}
-      {filteredImages.length === 0 ? (
+      {isLoading ? null : filteredImages.length === 0 ? (
         <div className="text-center py-16 text-text-secondary">
           <Image className="w-20 h-20 mx-auto mb-6 opacity-50" />
           <h3 className="text-xl font-semibold mb-2">
@@ -333,13 +319,6 @@ const ThumbnailManager: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {isUploading && (
-        <div className="fixed bottom-4 right-4 bg-primary text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
-          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          <span>Uploading images...</span>
         </div>
       )}
     </div>
