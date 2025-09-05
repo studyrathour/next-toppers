@@ -266,6 +266,7 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
                     ...content,
                     id: Math.random().toString(36).substr(2, 9),
                     thumbnail: subjectThumbnail,
+                    type: newSectionData.type,
                 }));
 
                 const existingSectionIndex = subject.sections.findIndex(s => s.name === newSectionData.name);

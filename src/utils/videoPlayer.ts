@@ -1,7 +1,18 @@
 export const getVideoPlayerURL = (videoUrl: string, isLive: boolean = false): string => {
-  const prefix = isLive 
-    ? 'https://edumastervideoplarerwatch.netlify.app/live/'
-    : 'https://edumastervideoplarerwatch.netlify.app/rec/';
+  const livePrefix = 'https://edumastervideoplarerwatch.netlify.app/live/';
+  const recPrefix = 'https://edumastervideoplarerwatch.netlify.app/rec/';
+
+  // If the videoUrl is empty or just whitespace, return a non-functional link.
+  if (!videoUrl || !videoUrl.trim()) {
+    return '#';
+  }
+
+  // If the URL already has a valid prefix, return it as is to prevent double-prefixing.
+  if (videoUrl.startsWith(livePrefix) || videoUrl.startsWith(recPrefix)) {
+    return videoUrl;
+  }
+  
+  const prefix = isLive ? livePrefix : recPrefix;
   
   return `${prefix}${encodeURIComponent(videoUrl)}`;
 };

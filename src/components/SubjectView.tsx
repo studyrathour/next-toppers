@@ -50,6 +50,16 @@ const SubjectView: React.FC<{ subject: Subject }> = ({ subject }) => {
     setActiveTab(tab);
   };
 
+  const getHrefForContent = (content: Content): string => {
+    // If the content is not explicitly a document type, treat it as a video.
+    // This ensures that any content marked as 'video', or with a missing/undefined type, gets the video player prefix.
+    if (content.type !== 'notes' && content.type !== 'assignment' && content.type !== 'quiz') {
+      return getVideoPlayerURL(content.url, false);
+    }
+    // For other types, return the raw URL.
+    return content.url || '#';
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-shrink-0 border-b border-secondary mb-6">
@@ -84,7 +94,7 @@ const SubjectView: React.FC<{ subject: Subject }> = ({ subject }) => {
             {activeContent.map(content => (
               <a 
                 key={content.id}
-                href={content.type === 'video' ? getVideoPlayerURL(content.url, false) : content.url} 
+                href={getHrefForContent(content)} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="block group"
