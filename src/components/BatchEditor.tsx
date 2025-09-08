@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { produce } from 'immer';
-import { Save, X, Plus, Trash2, ArrowLeft, ImagePlus, Upload, Check, Image } from 'lucide-react';
+import { Save, X, Plus, Trash2, ArrowLeft, ImagePlus, Upload, Check, Image, Code } from 'lucide-react';
 import { Batch, Subject, Section, Content } from '../types';
 import { firebaseService } from '../services/firebase';
 import { ThumbnailSelector } from './ThumbnailSelector';
@@ -51,13 +51,10 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
   const [subjectToUpdate, setSubjectToUpdate] = useState<number | null>(null);
   const subjectFolderInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (batchToEdit) {
-      setBatchData(batchToEdit);
-    } else {
-      setBatchData({ ...NEW_BATCH_TEMPLATE, createdAt: new Date(), isActive: true, enrolledStudents: 0 });
-    }
-  }, [batchToEdit]);
+  const [showCodeImporter, setShowCodeImporter] = useState(false);
+  const [pastedCode, setPastedCode] = useState('');
+  const [targetSection, setTargetSection] = useState('__new__');
+  const [newSectionName, setNewSectionName] = useState('');
 
   const handleBatchChange = (field: keyof Batch, value: string) => {
     setBatchData(produce(draft => {
@@ -296,6 +293,104 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
     }
   };
 
+  const handleImportFromCode = () => {
+    if (!pastedCode.trim()) {
+      toast.error('Please paste the code.');
+      return;
+    }
+    
+    let jsonData;
+    try {
+      const lines = pastedCode.split('\n');
+      const jsonStartIndex = lines.findIndex(line => line.trim().startsWith('{'));
+
+      if (jsonStartIndex === -1) {
+        throw new Error('No JSON object found in the pasted text.');
+      }
+
+      const jsonString = lines.slice(jsonStartIndex).join('\n');
+      jsonData = JSON.parse(jsonString);
+    } catch (e) {
+      toast.error('Invalid JSON format in the pasted code.');
+      console.error(e);
+      return;
+    }
+
+    if (!jsonData.data || !Array.isArray(jsonData.data.chapters)) {
+      toast.error('Pasted code does not have the expected structure (e.g., data.chapters array).');
+      return;
+    }
+
+    if (jsonData.data.chapters.length === 0) {
+      toast.error('No chapters found in the pasted code.');
+      return;
+    }
+
+    const firstChapter = jsonData.data.chapters[0];
+    let sectionType: Section['type'] = 'video';
+    if (firstChapter.type) {
+      const typeLower = firstChapter.type.toLowerCase();
+      if (['video', 'notes', 'assignment', 'quiz'].includes(typeLower)) {
+        sectionType = typeLower as Section['type'];
+      }
+    }
+
+    const subjectThumbnail = batchData.subjects[selectedSubjectIndex!].thumbnail;
+
+    const newContents: Content[] = jsonData.data.chapters.map((chapter: any) => ({
+      id: chapter._id?.toString() || Math.random().toString(36).substr(2, 9),
+      title: chapter.title || 'Untitled',
+      url: chapter.link || '',
+      type: sectionType,
+      thumbnail: subjectThumbnail,
+    }));
+
+    if (currentView === 'contents' && selectedSectionIndex !== null) {
+      // Always replace the content of the current section
+      setBatchData(produce(draft => {
+        const sectionToUpdate = draft.subjects[selectedSubjectIndex!].sections[selectedSectionIndex];
+        if (sectionToUpdate) {
+          sectionToUpdate.contents = newContents;
+          sectionToUpdate.type = sectionType;
+          toast.success(`Section "${sectionToUpdate.name}" updated with ${newContents.length} items.`);
+        }
+      }));
+    } else {
+      // Logic for creating/updating from Sections view
+      if (targetSection === '__new__') {
+        if (!newSectionName.trim()) {
+          toast.error('Please provide a name for the new section.');
+          return;
+        }
+        const newSection: Section = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: newSectionName,
+          type: sectionType,
+          contents: newContents,
+        };
+        setBatchData(produce(draft => {
+          draft.subjects[selectedSubjectIndex!].sections.push(newSection);
+        }));
+        toast.success(`Section "${newSectionName}" created with ${newContents.length} items.`);
+      } else {
+        setBatchData(produce(draft => {
+          const sectionToUpdate = draft.subjects[selectedSubjectIndex!].sections.find(s => s.id === targetSection);
+          if (sectionToUpdate) {
+            sectionToUpdate.contents = newContents;
+            sectionToUpdate.type = sectionType;
+            toast.success(`Section "${sectionToUpdate.name}" updated with ${newContents.length} items.`);
+          }
+        }));
+      }
+    }
+
+    // Reset and close
+    setShowCodeImporter(false);
+    setPastedCode('');
+    setNewSectionName('');
+    setTargetSection('__new__');
+  };
+
   const navigateToSubjects = () => {
     setCurrentView('subjects');
     setSelectedSubjectIndex(null);
@@ -462,6 +557,77 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
             }}
             title="Select Thumbnail"
           />
+        )}
+
+        {showCodeImporter && selectedSubjectIndex !== null && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                <div className="bg-surface rounded-xl p-6 max-w-2xl w-full mx-4 border border-secondary shadow-2xl">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-semibold text-text-primary">
+                            {currentView === 'contents' ? 'Update Section with Code' : 'Import Section from Code'}
+                        </h3>
+                        <button onClick={() => setShowCodeImporter(false)} className="text-text-secondary hover:text-text-primary">
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+                    <div className="space-y-4">
+                        <textarea
+                            value={pastedCode}
+                            onChange={(e) => setPastedCode(e.target.value)}
+                            placeholder="Paste your JSON or response data here..."
+                            className="w-full h-48 p-3 border border-secondary rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary transition-all font-mono text-sm"
+                        />
+                        
+                        {currentView !== 'contents' && (
+                            <>
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-2">Target Section</label>
+                                    <select
+                                        value={targetSection}
+                                        onChange={(e) => setTargetSection(e.target.value)}
+                                        className={inputStyles}
+                                    >
+                                        <option value="__new__">-- Create New Section --</option>
+                                        {batchData.subjects[selectedSubjectIndex].sections.map(section => (
+                                            <option key={section.id} value={section.id}>{section.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {targetSection === '__new__' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-secondary mb-2">New Section Name</label>
+                                        <input
+                                            type="text"
+                                            value={newSectionName}
+                                            onChange={(e) => setNewSectionName(e.target.value)}
+                                            placeholder="e.g., 'Chapter 1 Videos'"
+                                            className={inputStyles}
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                    <div className="flex gap-4 mt-6">
+                        <button
+                            onClick={handleImportFromCode}
+                            className="flex-1 bg-primary text-white py-3 px-4 rounded-lg hover:bg-primary/80 flex items-center justify-center gap-2 font-medium"
+                        >
+                            <Check className="w-5 h-5" />
+                            {currentView === 'contents'
+                                ? 'Update Section'
+                                : (targetSection === '__new__' ? 'Create Section' : 'Update Section')
+                            }
+                        </button>
+                        <button
+                            onClick={() => setShowCodeImporter(false)}
+                            className="flex-1 bg-secondary text-text-primary py-3 px-4 rounded-lg hover:bg-secondary/80"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
         )}
 
         <div className="space-y-8">
@@ -645,13 +811,27 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
                 <h2 className="text-2xl font-semibold text-text-primary">
                   {batchData.subjects[selectedSubjectIndex]?.name} - Sections
                 </h2>
-                <button
-                  onClick={() => addSection(selectedSubjectIndex)}
-                  className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/80 flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Section
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => {
+                            setPastedCode('');
+                            setNewSectionName('');
+                            setTargetSection('__new__');
+                            setShowCodeImporter(true);
+                        }}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                    >
+                        <Code className="w-4 h-4" />
+                        Import from Code
+                    </button>
+                    <button
+                        onClick={() => addSection(selectedSubjectIndex)}
+                        className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/80 flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Section
+                    </button>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {batchData.subjects[selectedSubjectIndex]?.sections.map((section, secIdx) => (
@@ -746,6 +926,17 @@ const BatchEditor: React.FC<BatchEditorProps> = ({ batchToEdit, onClose }) => {
                   >
                     <Plus className="w-4 h-4" />
                     Add Content
+                  </button>
+                  <button
+                    onClick={() => {
+                        if (selectedSubjectIndex === null || selectedSectionIndex === null) return;
+                        setShowCodeImporter(true);
+                    }}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                    title="Update this section's content from code"
+                  >
+                    <Code className="w-4 h-4" />
+                    Update with Code
                   </button>
                 </div>
               </div>

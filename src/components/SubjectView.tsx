@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Video, FileText, ClipboardCheck, HelpCircle } from 'lucide-react';
 import { Subject, Content } from '../types';
-import { getVideoPlayerURL } from '../utils/videoPlayer';
 import ContentThumbnail from './ContentThumbnail';
 
 type ContentType = 'video' | 'notes' | 'assignment' | 'quiz';
@@ -14,7 +13,7 @@ const iconMap: { [key in ContentType]: React.ElementType } = {
 };
 
 const SubjectView: React.FC<{ subject: Subject }> = ({ subject }) => {
-  const [activeTab, setActiveTab] = useState<ContentType>('video');
+  const [userSelectedTab, setUserSelectedTab] = useState<ContentType | null>(null);
 
   const contentByType = useMemo(() => {
     const grouped: Record<ContentType, Content[]> = {
@@ -33,31 +32,27 @@ const SubjectView: React.FC<{ subject: Subject }> = ({ subject }) => {
     return grouped;
   }, [subject]);
 
-  const availableTabs = Object.keys(contentByType).filter(
-    type => contentByType[type as ContentType].length > 0
-  ) as ContentType[];
-  
-  useState(() => {
-    if (availableTabs.length > 0 && !availableTabs.includes(activeTab)) {
-      setActiveTab(availableTabs[0]);
+  const availableTabs = useMemo(() => {
+    return Object.keys(contentByType).filter(
+      (type) => contentByType[type as ContentType].length > 0
+    ) as ContentType[];
+  }, [contentByType]);
+
+  const activeTab = useMemo(() => {
+    if (userSelectedTab && availableTabs.includes(userSelectedTab)) {
+      return userSelectedTab;
     }
-  });
+    if (availableTabs.length > 0) {
+      return availableTabs[0];
+    }
+    return 'video';
+  }, [userSelectedTab, availableTabs]);
 
   const activeContent = contentByType[activeTab];
 
   const handleTabChange = (tab: ContentType) => {
     if (tab === activeTab) return;
-    setActiveTab(tab);
-  };
-
-  const getHrefForContent = (content: Content): string => {
-    // If the content is not explicitly a document type, treat it as a video.
-    // This ensures that any content marked as 'video', or with a missing/undefined type, gets the video player prefix.
-    if (content.type !== 'notes' && content.type !== 'assignment' && content.type !== 'quiz') {
-      return getVideoPlayerURL(content.url, false);
-    }
-    // For other types, return the raw URL.
-    return content.url || '#';
+    setUserSelectedTab(tab);
   };
 
   return (
@@ -89,25 +84,14 @@ const SubjectView: React.FC<{ subject: Subject }> = ({ subject }) => {
       </div>
 
       <div className="flex-grow overflow-y-auto">
-        {activeContent.length > 0 ? (
+        {activeContent && activeContent.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {activeContent.map(content => (
-              <a 
+              <ContentThumbnail
                 key={content.id}
-                href={getHrefForContent(content)} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block group"
-              >
-                <ContentThumbnail 
-                  title={content.title} 
-                  teacherImageUrl={content.thumbnail}
-                  showTitle={true}
-                  contentType={content.type}
-                  showButton={true}
-                  isSubject={false}
-                />
-              </a>
+                content={content}
+                isSubject={false}
+              />
             ))}
           </div>
         ) : (

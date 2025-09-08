@@ -91,18 +91,12 @@ const ContentExplorer: React.FC<ContentExplorerProps> = ({ batch, onBackToCourse
         return (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {currentLevel.data.map((subject) => (
-              <div
+              <ContentThumbnail
                 key={subject.id}
-                className="cursor-pointer group"
-                onClick={() => drillDown({ type: 'subject', title: subject.name, data: subject })}
-              >
-                <ContentThumbnail 
-                  title={subject.name} 
-                  teacherImageUrl={subject.thumbnail}
-                  showTitle={true}
-                  isSubject={true}
-                />
-              </div>
+                subject={subject}
+                isSubject={true}
+                onSubjectClick={(s) => drillDown({ type: 'subject', title: s.name, data: s })}
+              />
             ))}
           </div>
         );
